@@ -2,8 +2,9 @@ import processing.svg.*;
 import java.util.Collections;
 import java.util.Comparator;
 
-int gridN = 8;
-int  scribbleLen = 200;
+int gridNw = 10;
+int gridNh = 13;
+int  scribbleLen = 1100;
 boolean debugGrid = false;
 
 ArrayList<PVector> vList = new ArrayList<PVector>();
@@ -55,24 +56,25 @@ ArrayList<PVector[]> connectPts(ArrayList<PVector> arr, ArrayList<PVector[]> lin
     }
 
     ArrayList<PVector[]> retarr1 = connectPts(arr1, lineArr);
-    ArrayList<PVector[]> retarr2 = connectPts(arr2, lineArr);
+    //ArrayList<PVector[]> retarr2 = connectPts(arr2, lineArr);
     return lineArr;
   }
 }
 
 void setup() {
-  size(1600, 1600);
+  size(816, 1056);
   
   beginRecord(SVG, "testoutp.svg");
   
   background(255);
   noFill();
   
-  float gridL = width / (float)gridN;
+  float gridLw = width / (float)gridNw;
+  float gridLh = height / (float)gridNh;
   
-  for (int y = 0; y < gridN; y++) {
+  for (int y = 0; y < gridNh; y++) {
     iArr.add(new ArrayList<ArrayList<ArrayList<PVector>>>());
-    for (int x = 0; x < gridN; x++) {
+    for (int x = 0; x < gridNw; x++) {
       iArr.get(y).add(new ArrayList<ArrayList<PVector>>());
       for (int i = 0; i < 5; i++) {
         iArr.get(y).get(x).add(new ArrayList<PVector>());
@@ -81,11 +83,11 @@ void setup() {
   }
   
   if(debugGrid) {
-    for(int i = 1; i< gridN; i++) {
-      line(0, i*gridL, height, i*gridL);
+    for(int i = 1; i< gridNw; i++) {
+      line(0, i*gridLw, height, i*gridLw);
     }
-    for(int i = 1; i< gridN; i++) {
-      line(i*gridL, 0, i*gridL, width);
+    for(int i = 1; i< gridNh; i++) {
+      line(i*gridLh, 0, i*gridLh, width);
     }
   }
   
@@ -111,43 +113,43 @@ void setup() {
     float yPos, xPos;
 
     // First loop
-    for (float j = (x1 - (x1 % gridL)) + gridL; j <= (x2 - (x2 % gridL)); j += gridL) {
+    for (float j = (x1 - (x1 % gridLw)) + gridLw; j <= (x2 - (x2 % gridLw)); j += gridLw) {
         yPos = y1 + (j - x1) * s;
         PVector point = new PVector(j, yPos);
-        iArr.get((int)(yPos / gridL)).get((int)(j / gridL)).get(3).add(point);
-        iArr.get((int)(yPos / gridL)).get((int)(j / gridL) - 1).get(1).add(point);
-        iArr.get((int)(yPos / gridL)).get((int)(j / gridL)).get(4).add(point);
-        iArr.get((int)(yPos / gridL)).get((int)(j / gridL) - 1).get(4).add(point);
+        iArr.get((int)(yPos / gridLh)).get((int)(j / gridLw)).get(3).add(point);
+        iArr.get((int)(yPos / gridLh)).get((int)(j / gridLw) - 1).get(1).add(point);
+        iArr.get((int)(yPos / gridLh)).get((int)(j / gridLw)).get(4).add(point);
+        iArr.get((int)(yPos / gridLh)).get((int)(j / gridLw) - 1).get(4).add(point);
     }
     
     // Second loop - Note the conditions in the loop may need to be adjusted depending on the specific logic of traversal
-    for (float j = (x2 - (x2 % gridL)) + gridL; j <= (x1 - (x1 % gridL)); j += gridL) {
+    for (float j = (x2 - (x2 % gridLw)) + gridLw; j <= (x1 - (x1 % gridLw)); j += gridLw) {
         yPos = y1 + (j - x1) * s;
         PVector point = new PVector(j, yPos);
-        iArr.get((int)(yPos / gridL)).get((int)(j / gridL)).get(3).add(point);
-        iArr.get((int)(yPos / gridL)).get((int)(j / gridL) - 1).get(1).add(point);
-        iArr.get((int)(yPos / gridL)).get((int)(j / gridL)).get(4).add(point);
-        iArr.get((int)(yPos / gridL)).get((int)(j / gridL) - 1).get(4).add(point);
+        iArr.get((int)(yPos / gridLh)).get((int)(j / gridLw)).get(3).add(point);
+        iArr.get((int)(yPos / gridLh)).get((int)(j / gridLw) - 1).get(1).add(point);
+        iArr.get((int)(yPos / gridLh)).get((int)(j / gridLw)).get(4).add(point);
+        iArr.get((int)(yPos / gridLh)).get((int)(j / gridLw) - 1).get(4).add(point);
     }
     
     // Third loop
-    for (float j = (y1 - (y1 % gridL)) + gridL; j <= (y2 - (y2 % gridL)); j += gridL) {
+    for (float j = (y1 - (y1 % gridLh)) + gridLh; j <= (y2 - (y2 % gridLh)); j += gridLh) {
         xPos = x1 + (j - y1) / s;
         PVector point = new PVector(xPos, j);
-        iArr.get((int)(j / gridL)).get((int)(xPos / gridL)).get(0).add(point);
-        iArr.get((int)(j / gridL) - 1).get((int)(xPos / gridL)).get(2).add(point);
-        iArr.get((int)(j / gridL)).get((int)(xPos / gridL)).get(4).add(point);
-        iArr.get((int)(j / gridL) - 1).get((int)(xPos / gridL)).get(4).add(point);
+        iArr.get((int)(j / gridLh)).get((int)(xPos / gridLw)).get(0).add(point);
+        iArr.get((int)(j / gridLh) - 1).get((int)(xPos / gridLw)).get(2).add(point);
+        iArr.get((int)(j / gridLh)).get((int)(xPos / gridLw)).get(4).add(point);
+        iArr.get((int)(j / gridLh) - 1).get((int)(xPos / gridLw)).get(4).add(point);
     }
     
     // Fourth loop
-    for (float j = (y2 - (y2 % gridL)) + gridL; j <= (y1 - (y1 % gridL)); j += gridL) {
+    for (float j = (y2 - (y2 % gridLh)) + gridLh; j <= (y1 - (y1 % gridLh)); j += gridLh) {
         xPos = x1 + (j - y1) / s;
         PVector point = new PVector(xPos, j);
-        iArr.get((int)(j / gridL)).get((int)(xPos / gridL)).get(0).add(point);
-        iArr.get((int)(j / gridL) - 1).get((int)(xPos / gridL)).get(2).add(point);
-        iArr.get((int)(j / gridL)).get((int)(xPos / gridL)).get(4).add(point);
-        iArr.get((int)(j / gridL) - 1).get((int)(xPos / gridL)).get(4).add(point);
+        iArr.get((int)(j / gridLh)).get((int)(xPos / gridLw)).get(0).add(point);
+        iArr.get((int)(j / gridLh) - 1).get((int)(xPos / gridLw)).get(2).add(point);
+        iArr.get((int)(j / gridLh)).get((int)(xPos / gridLw)).get(4).add(point);
+        iArr.get((int)(j / gridLh) - 1).get((int)(xPos / gridLw)).get(4).add(point);
     }
 
     
@@ -155,9 +157,9 @@ void setup() {
   
   
   //MIGHT BE WRONG
-  for (int y = 0; y < gridN; y++) {
-    for (int x = 0; x < gridN; x++) {
-        centroid = new PVector(x * gridL + gridL / 2, y * gridL + gridL / 2);
+  for (int y = 0; y < gridNh; y++) {
+    for (int x = 0; x < gridNw; x++) {
+        centroid = new PVector(x * gridLw + gridLw / 2, y * gridLh + gridLh / 2);
         
         if(iArr.get(y).get(x).get(4).size() % 2 == 1) {
           println("before sort: ", iArr.get(y).get(x).get(4));
@@ -177,8 +179,8 @@ void setup() {
   
   ArrayList<PVector[]> lineArr;
 
-  for (int y = 0; y < gridN; y++) {
-      for (int x = 0; x < gridN; x++) {
+  for (int y = 0; y < gridNh; y++) {
+      for (int x = 0; x < gridNw; x++) {
           
           lineArr = connectPts(iArr.get(y).get(x).get(4), new ArrayList<PVector[]>());
           
@@ -206,12 +208,12 @@ void setup() {
               float startAng;
               
               if (x1 == x2) {
-                  startAng = x1 == x * gridL ? (3 * PI) / 2 : PI / 2;
+                  startAng = x1 == x * gridLw ? (3 * PI) / 2 : PI / 2;
                   arc(x1, (y1 + y2) / 2, abs(y1 - y2), abs(y1 - y2), startAng, startAng + PI);
               } else if (y1 == y2) {
-                  startAng = y1 == y * gridL ? 0 : PI;
+                  startAng = y1 == y * gridLh ? 0 : PI;
                   arc((x1 + x2) / 2, y1, abs(x1 - x2), abs(x1 - x2), startAng, startAng + PI);
-              } else if (abs(x1 - x2) == gridL) {
+              } else if (abs(x1 - x2) == gridLw) {
                   float s = (y2 - y1) / (x2 - x1);
                   if (s > 0) {
                       arc(x1, (y1 + y2) / 2, abs(x1 - x2), abs(y1 - y2), PI / 2, PI);
@@ -222,7 +224,7 @@ void setup() {
                       arc(x1, (y1 + y2) / 2, abs(x1 - x2), abs(y1 - y2), PI, (3 * PI) / 2);
                       arc(x2, (y1 + y2) / 2, abs(x1 - x2), abs(y1 - y2), 0, PI / 2);
                   }
-              } else if (abs(y1 - y2) == gridL) {
+              } else if (abs(y1 - y2) == gridLh) {
                   float s = (y2 - y1) / (x2 - x1);
                   if (s > 0) {
                       arc((x1 + x2) / 2, y2, abs(x1 - x2), abs(y1 - y2), PI / 2, PI);
@@ -235,13 +237,13 @@ void setup() {
                   }
               } else {
                   if (y1 < y2) {
-                      if (y * gridL == y1) {
+                      if (y * gridLh == y1) {
                           arc(x2, y1, 2 * abs(x2 - x1), 2 * abs(y2 - y1), 0, PI / 2);
                       } else {
                           arc(x1, y2, 2 * abs(x2 - x1), 2 * abs(y2 - y1), PI, (3 * PI) / 2);
                       }
                   } else {
-                      if ((y + 1) * gridL == y1) {
+                      if ((y + 1) * gridLh == y1) {
                           arc(x2, y1, 2 * abs(x2 - x1), 2 * abs(y2 - y1), (3 * PI) / 2, 2*PI);
                       } else {
                           arc(x1, y2, 2 * abs(x2 - x1), 2 * abs(y2 - y1), PI / 2, PI);
