@@ -44,21 +44,23 @@ ArrayList<PVector[]> connectPts(ArrayList<PVector> arr, ArrayList<PVector[]> lin
       arr2 = new ArrayList<PVector>();
       arr2.addAll(arr.subList(p2 + 1, arr.size()));
       arr2.addAll(arr.subList(0, p1));
-    } else {
+    } 
+    else {
       if(arr.size()%2 == 1) {
         println(arr.size());
       }
       if(p1 == p2) {
         println(p1, p2, arr);
       }
+      
       arr1 = new ArrayList<PVector>(arr.subList(p2 + 1, p1));
       arr2 = new ArrayList<PVector>();
       arr2.addAll(arr.subList(p1 + 1, arr.size()));
       arr2.addAll(arr.subList(0, p2));
     }
 
-    ArrayList<PVector[]> retarr1 = connectPts(arr1, lineArr);
-    ArrayList<PVector[]> retarr2 = connectPts(arr2, lineArr);
+    //ArrayList<PVector[]> retarr1 = connectPts(arr1, lineArr);
+    //ArrayList<PVector[]> retarr2 = connectPts(arr2, lineArr);
     return lineArr;
   }
 }
@@ -158,120 +160,128 @@ void setup() {
   }
   
   //debugging: circles all grid-line intersections
+  boolean debug = true;
   
-  for(int y = 0; y < gridNh; y++)
+  if(debug)
   {
-    for(int x = 0; x < gridNw; x++)
+    for(int y = 0; y < gridNh; y++)
     {
-      for(int s = 0; s < 4; s++)
+      for(int x = 0; x < gridNw; x++)
       {
-        for(int i = 0; i < iArr.get(y).get(x).get(s).size(); i++)
+        if(iArr.get(y).get(x).get(4).size()%2 != 0) {
+            print("Error: size is odd ");
+            println(iArr.get(y).get(x).get(4).size());
+          }
+        for(int s = 0; s < 4; s++)
         {
-          PVector point = iArr.get(y).get(x).get(s).get(i);
-          circle(point.x, point.y, 2+3*s);
+          for(int i = 0; i < iArr.get(y).get(x).get(s).size(); i++)
+          {
+            PVector point = iArr.get(y).get(x).get(s).get(i);
+            circle(point.x, point.y, 5+3*s);
+          }
         }
       }
     }
   }
   
   
-  ////MIGHT BE WRONG
-  //for (int y = 0; y < gridNh; y++) {
-  //  for (int x = 0; x < gridNw; x++) {
-  //      centroid = new PVector(x * gridLw + gridLw / 2, y * gridLh + gridLh / 2);
+  //MIGHT BE WRONG
+  for (int y = 0; y < gridNh; y++) {
+    for (int x = 0; x < gridNw; x++) {
+        centroid = new PVector(x * gridLw + gridLw / 2, y * gridLh + gridLh / 2);
         
-  //      if(iArr.get(y).get(x).get(4).size() % 2 == 1) {
-  //        println("before sort: ", iArr.get(y).get(x).get(4));
-  //      }
+        if(iArr.get(y).get(x).get(4).size() % 2 == 1) {
+          println("before sort: ", iArr.get(y).get(x).get(4));
+        }
 
-  //      // Sort the ArrayList<PVector> based on angle to centroid
-  //      Collections.sort(iArr.get(y).get(x).get(4), new Comparator<PVector>() {
-  //          public int compare(PVector p1, PVector p2) {
-  //              float angle1 = PVector.sub(p1, centroid).heading();
-  //              float angle2 = PVector.sub(p2, centroid).heading();
-  //              return Float.compare(angle1, angle2);
-  //          }
-  //      });
+        // Sort the ArrayList<PVector> based on angle to centroid
+        Collections.sort(iArr.get(y).get(x).get(4), new Comparator<PVector>() {
+            public int compare(PVector p1, PVector p2) {
+                float angle1 = PVector.sub(p1, centroid).heading();
+                float angle2 = PVector.sub(p2, centroid).heading();
+                return Float.compare(angle1, angle2);
+            }
+        });
         
-  //  }
-  //}
+    }
+  }
   
-  //ArrayList<PVector[]> lineArr;
+  ArrayList<PVector[]> lineArr;
 
-  //for (int y = 0; y < gridNh; y++) {
-  //    for (int x = 0; x < gridNw; x++) {
+  for (int y = 0; y < gridNh; y++) {
+      for (int x = 0; x < gridNw; x++) {
+       
+          lineArr = connectPts(iArr.get(y).get(x).get(4), new ArrayList<PVector[]>());
           
-  //        lineArr = connectPts(iArr.get(y).get(x).get(4), new ArrayList<PVector[]>());
-          
-  //        for (int i = 0; i < lineArr.size(); i++) {
-  //            PVector p1 = lineArr.get(i)[0];
-  //            PVector p2 = lineArr.get(i)[1];
+          for (int i = 0; i < lineArr.size(); i++) {
+              PVector p1 = lineArr.get(i)[0];
+              PVector p2 = lineArr.get(i)[1];
               
-  //            float x1;
-  //            float y1;
-  //            float x2;
-  //            float y2;
+              float x1;
+              float y1;
+              float x2;
+              float y2;
               
-  //            if (p1.x > p2.x) {
-  //                x1 = p1.x;
-  //                y1 = p1.y;
-  //                x2 = p2.x;
-  //                y2 = p2.y;
-  //            } else {
-  //                x2 = p1.x;
-  //                y2 = p1.y;
-  //                x1 = p2.x;
-  //                y1 = p2.y;
-  //            }
+              if (p1.x > p2.x) {
+                  x1 = p1.x;
+                  y1 = p1.y;
+                  x2 = p2.x;
+                  y2 = p2.y;
+              } else {
+                  x2 = p1.x;
+                  y2 = p1.y;
+                  x1 = p2.x;
+                  y1 = p2.y;
+              }
               
-  //            float startAng;
+              float startAng;
               
-  //            if (x1 == x2) {
-  //                startAng = x1 == x * gridLw ? (3 * PI) / 2 : PI / 2;
-  //                arc(x1, (y1 + y2) / 2, abs(y1 - y2), abs(y1 - y2), startAng, startAng + PI);
-  //            } else if (y1 == y2) {
-  //                startAng = y1 == y * gridLh ? 0 : PI;
-  //                arc((x1 + x2) / 2, y1, abs(x1 - x2), abs(x1 - x2), startAng, startAng + PI);
-  //            } else if (abs(x1 - x2) == gridLw) {
-  //                float s = (y2 - y1) / (x2 - x1);
-  //                if (s > 0) {
-  //                    arc(x1, (y1 + y2) / 2, abs(x1 - x2), abs(y1 - y2), PI / 2, PI);
-  //                    arc(x2, (y1 + y2) / 2, abs(x1 - x2), abs(y1 - y2), (3 * PI) / 2, 2*PI);
-  //                } else if (s == 0) {
-  //                    line(x1, y1, x2, y2);
-  //                } else {
-  //                    arc(x1, (y1 + y2) / 2, abs(x1 - x2), abs(y1 - y2), PI, (3 * PI) / 2);
-  //                    arc(x2, (y1 + y2) / 2, abs(x1 - x2), abs(y1 - y2), 0, PI / 2);
-  //                }
-  //            } else if (abs(y1 - y2) == gridLh) {
-  //                float s = (y2 - y1) / (x2 - x1);
-  //                if (s > 0) {
-  //                    arc((x1 + x2) / 2, y2, abs(x1 - x2), abs(y1 - y2), PI / 2, PI);
-  //                    arc((x1 + x2) / 2, y1, abs(x1 - x2), abs(y1 - y2), (3 * PI) / 2, 2*PI);
-  //                } else if (s == 0) {
-  //                    line(x1, y1, x2, y2);
-  //                } else {
-  //                    arc((x1 + x2) / 2, y2, abs(x1 - x2), abs(y1 - y2), PI, (3 * PI) / 2);
-  //                    arc((x1 + x2) / 2, y1, abs(x1 - x2), abs(y1 - y2), 0, PI / 2);
-  //                }
-  //            } else {
-  //                if (y1 < y2) {
-  //                    if (y * gridLh == y1) {
-  //                        arc(x2, y1, 2 * abs(x2 - x1), 2 * abs(y2 - y1), 0, PI / 2);
-  //                    } else {
-  //                        arc(x1, y2, 2 * abs(x2 - x1), 2 * abs(y2 - y1), PI, (3 * PI) / 2);
-  //                    }
-  //                } else {
-  //                    if ((y + 1) * gridLh == y1) {
-  //                        arc(x2, y1, 2 * abs(x2 - x1), 2 * abs(y2 - y1), (3 * PI) / 2, 2*PI);
-  //                    } else {
-  //                        arc(x1, y2, 2 * abs(x2 - x1), 2 * abs(y2 - y1), PI / 2, PI);
-  //                    }
-  //                }
-  //            }
-  //        }
-  //    }
-  //}
+              if (x1 == x2) {
+                  startAng = x1 == x * gridLw ? (3 * PI) / 2 : PI / 2;
+                  arc(x1, (y1 + y2) / 2, abs(y1 - y2), abs(y1 - y2), startAng, startAng + PI);
+              } else if (y1 == y2) {
+                  startAng = y1 == y * gridLh ? 0 : PI;
+                  arc((x1 + x2) / 2, y1, abs(x1 - x2), abs(x1 - x2), startAng, startAng + PI);
+              } else if (abs(x1 - x2) == gridLw) {
+                  float s = (y2 - y1) / (x2 - x1);
+                  if (s > 0) {
+                      arc(x1, (y1 + y2) / 2, abs(x1 - x2), abs(y1 - y2), PI / 2, PI);
+                      arc(x2, (y1 + y2) / 2, abs(x1 - x2), abs(y1 - y2), (3 * PI) / 2, 2*PI);
+                  } else if (s == 0) {
+                      line(x1, y1, x2, y2);
+                  } else {
+                      arc(x1, (y1 + y2) / 2, abs(x1 - x2), abs(y1 - y2), PI, (3 * PI) / 2);
+                      arc(x2, (y1 + y2) / 2, abs(x1 - x2), abs(y1 - y2), 0, PI / 2);
+                  }
+              } else if (abs(y1 - y2) == gridLh) {
+                  float s = (y2 - y1) / (x2 - x1);
+                  if (s > 0) {
+                      arc((x1 + x2) / 2, y2, abs(x1 - x2), abs(y1 - y2), PI / 2, PI);
+                      arc((x1 + x2) / 2, y1, abs(x1 - x2), abs(y1 - y2), (3 * PI) / 2, 2*PI);
+                  } else if (s == 0) {
+                      line(x1, y1, x2, y2);
+                  } else {
+                      arc((x1 + x2) / 2, y2, abs(x1 - x2), abs(y1 - y2), PI, (3 * PI) / 2);
+                      arc((x1 + x2) / 2, y1, abs(x1 - x2), abs(y1 - y2), 0, PI / 2);
+                  }
+              } else {
+                  if (y1 < y2) {
+                      if (y * gridLh == y1) {
+                          arc(x2, y1, 2 * abs(x2 - x1), 2 * abs(y2 - y1), 0, PI / 2);
+                      } else {
+                          arc(x1, y2, 2 * abs(x2 - x1), 2 * abs(y2 - y1), PI, (3 * PI) / 2);
+                      }
+                  } else {
+                      if ((y + 1) * gridLh == y1) {
+                          arc(x2, y1, 2 * abs(x2 - x1), 2 * abs(y2 - y1), (3 * PI) / 2, 2*PI);
+                      } else {
+                          arc(x1, y2, 2 * abs(x2 - x1), 2 * abs(y2 - y1), PI / 2, PI);
+                      }
+                  }
+              }
+          }
+      }
+  }
   
   
   
