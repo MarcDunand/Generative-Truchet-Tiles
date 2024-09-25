@@ -4,7 +4,7 @@ import java.util.Comparator;
 
 int gridNw = 10;
 int gridNh = 13;
-int  scribbleLen = 1000;
+int  scribbleLen = 1100;
 boolean debugGrid = false;
 
 ArrayList<PVector> vList = new ArrayList<PVector>();
