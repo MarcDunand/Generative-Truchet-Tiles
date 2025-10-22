@@ -205,13 +205,13 @@ void setup() {
               
               float startAng;
               
-              if (x1 == x2) {
+              if (x1 == x2) {  //side top and bottom
                   startAng = x1 == x * gridL ? (3 * PI) / 2 : PI / 2;
                   arc(x1, (y1 + y2) / 2, abs(y1 - y2), abs(y1 - y2), startAng, startAng + PI);
-              } else if (y1 == y2) {
+              } else if (y1 == y2) {  //side left and right
                   startAng = y1 == y * gridL ? 0 : PI;
                   arc((x1 + x2) / 2, y1, abs(x1 - x2), abs(x1 - x2), startAng, startAng + PI);
-              } else if (abs(x1 - x2) == gridL) {
+              } else if (abs(x1 - x2) == gridL) {  //cross left and right
                   float s = (y2 - y1) / (x2 - x1);
                   if (s > 0) {
                       arc(x1, (y1 + y2) / 2, abs(x1 - x2), abs(y1 - y2), PI / 2, PI);
@@ -222,7 +222,7 @@ void setup() {
                       arc(x1, (y1 + y2) / 2, abs(x1 - x2), abs(y1 - y2), PI, (3 * PI) / 2);
                       arc(x2, (y1 + y2) / 2, abs(x1 - x2), abs(y1 - y2), 0, PI / 2);
                   }
-              } else if (abs(y1 - y2) == gridL) {
+              } else if (abs(y1 - y2) == gridL) {  //cross top and bottom
                   float s = (y2 - y1) / (x2 - x1);
                   if (s > 0) {
                       arc((x1 + x2) / 2, y2, abs(x1 - x2), abs(y1 - y2), PI / 2, PI);
@@ -233,7 +233,7 @@ void setup() {
                       arc((x1 + x2) / 2, y2, abs(x1 - x2), abs(y1 - y2), PI, (3 * PI) / 2);
                       arc((x1 + x2) / 2, y1, abs(x1 - x2), abs(y1 - y2), 0, PI / 2);
                   }
-              } else {
+              } else {  //corner
                   if (y1 < y2) {
                       if (y * gridL == y1) {
                           arc(x2, y1, 2 * abs(x2 - x1), 2 * abs(y2 - y1), 0, PI / 2);
