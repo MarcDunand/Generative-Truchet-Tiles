@@ -2,14 +2,32 @@ import processing.svg.*;
 import java.util.Collections;
 import java.util.Comparator;
 
-int gridN = 8;
-int  scribbleLen = 200;
+
+public static final class EllipseAA {
+  public final double cx, cy;   // center
+  public final double a, b;     // semi-axes (a = radius on x, b = radius on y)
+  public final double i, f;
+  public EllipseAA(double cx, double cy, double a, double b, double i, double f) {
+    this.cx = cx; this.cy = cy; this.a = a; this.b = b; this.i = i; this.f = f;
+  }
+}
+
+//debug
+float fails = 0.0;
+
+
+int gridN = 10;
+int  scribbleLen = 20;
+int iters = 800;
+int maxAttempts = 20;
+double lineSep = 2;
 boolean debugGrid = false;
 
 ArrayList<PVector> vList = new ArrayList<PVector>();
 ArrayList<PVector> iList = new ArrayList<PVector>();
 ArrayList<ArrayList<ArrayList<ArrayList<PVector>>>> iArr = new ArrayList<ArrayList<ArrayList<ArrayList<PVector>>>>();
 PVector centroid = new PVector();
+
 
 float findSlope(float x1, float y1, float x2, float y2) {
   return (y2 - y1) / (x2 - x1);
@@ -21,47 +39,118 @@ float angleSort(PVector p1, PVector p2) {
   return (float)(angleA - angleB);
 }
 
+void drawArc(EllipseAA e) {
+  float w = (float)(e.a);
+  float h = (float)(e.b);
+  float x = (float)e.cx;
+  float y = (float)e.cy;
+  float i = (float)e.i;
+  float f = (float)e.f;
+  arc(x, y, w, h, i, f);
+}
 
-ArrayList<PVector[]> connectPts(ArrayList<PVector> arr, ArrayList<PVector[]> lineArr) {
-  if (arr.size() == 0) {
-    return lineArr;
-  } else if (arr.size() == 2) {
-    // println(arr.get(0).x + ", " + arr.get(1).x);
-    lineArr.add(new PVector[] { arr.get(0), arr.get(1) });
-    return lineArr;
-  } else {
-    int p1 = int(random(0, arr.size()));
-    int p2 = (p1 + 1 + 2 * int(random(0, arr.size() / 2))) % arr.size();
-    lineArr.add(new PVector[] { arr.get(p1), arr.get(p2) });
-    // println(arr.get(p1).x + ", " + arr.get(p2).x);
-
-    ArrayList<PVector> arr1, arr2;
-    if (p1 < p2) {
-      arr1 = new ArrayList<PVector>(arr.subList(p1 + 1, p2));
-      arr2 = new ArrayList<PVector>();
-      arr2.addAll(arr.subList(p2 + 1, arr.size()));
-      arr2.addAll(arr.subList(0, p1));
-    } else {
-      if(arr.size()%2 == 1) {
-        println(arr.size());
-      }
-      if(p1 == p2) {
-        println(p1, p2, arr);
-      }
-      arr1 = new ArrayList<PVector>(arr.subList(p2 + 1, p1));
-      arr2 = new ArrayList<PVector>();
-      arr2.addAll(arr.subList(p1 + 1, arr.size()));
-      arr2.addAll(arr.subList(0, p2));
+PVector randomGridStep(PVector cur) {
+  // Possible directions (x,y)
+  int[][] dirs = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}};
+  
+  // Collect valid moves
+  ArrayList<PVector> validMoves = new ArrayList<PVector>();
+  for (int[] d : dirs) {
+    int nx = int(cur.x) + d[0];
+    int ny = int(cur.y) + d[1];
+    if (nx >= 0 && nx < gridN && ny >= 0 && ny < gridN) {
+      validMoves.add(new PVector(nx, ny));
     }
+  }
+  
+  // Always at least one valid move (guaranteed inside bounds)
+  return validMoves.get(int(random(validMoves.size())));
+}
 
-    ArrayList<PVector[]> retarr1 = connectPts(arr1, lineArr);
-    ArrayList<PVector[]> retarr2 = connectPts(arr2, lineArr);
-    return lineArr;
+
+int generateArc(ArrayList<EllipseAA> arcArr, float gridL, PVector cell, PVector p1, PVector p2) {
+  int x = int(cell.x);
+  int y = int(cell.y);
+  
+  float x1;
+  float y1;
+  float x2;
+  float y2;
+    
+  if (p1.x > p2.x) {
+      x1 = p1.x;
+      y1 = p1.y;
+      x2 = p2.x;
+      y2 = p2.y;
+  } else {
+      x2 = p1.x;
+      y2 = p1.y;
+      x1 = p2.x;
+      y1 = p2.y;
+  }
+  
+  float startAng;
+  
+  if (x1 == x2) {  //side left and right
+      startAng = x1 == x * gridL ? (3 * PI) / 2 : PI / 2;
+      arcArr.add(new EllipseAA(x1, (y1 + y2) / 2, abs(y1 - y2), abs(y1 - y2), startAng, startAng + PI));
+      return 1;
+  } else if (y1 == y2) {  //side top and bottom
+      startAng = y1 == y * gridL ? 0 : PI;
+      arcArr.add(new EllipseAA((x1 + x2) / 2, y1, abs(x1 - x2), abs(x1 - x2), startAng, startAng + PI));
+      return 1;
+  } else if (abs(x1 - x2) == gridL) {  //cross left and right
+      float s = (y2 - y1) / (x2 - x1);
+      if (s > 0) {
+          arcArr.add(new EllipseAA(x1, (y1 + y2) / 2, abs(x1 - x2), abs(y1 - y2), PI / 2, PI));
+          arcArr.add(new EllipseAA(x2, (y1 + y2) / 2, abs(x1 - x2), abs(y1 - y2), (3 * PI) / 2, 2*PI));
+          return 2;
+      } else if (s == 0) {
+          line(x1, y1, x2, y2);
+          return 0;
+      } else {
+          arcArr.add(new EllipseAA(x1, (y1 + y2) / 2, abs(x1 - x2), abs(y1 - y2), PI, (3 * PI) / 2));
+          arcArr.add(new EllipseAA(x2, (y1 + y2) / 2, abs(x1 - x2), abs(y1 - y2), 0, PI / 2));
+          return 2;
+      }
+  } else if (abs(y1 - y2) == gridL) {  //cross top and bottom
+      float s = (y2 - y1) / (x2 - x1);
+      if (s > 0) {
+          arcArr.add(new EllipseAA((x1 + x2) / 2, y2, abs(x1 - x2), abs(y1 - y2), PI / 2, PI));
+          arcArr.add(new EllipseAA((x1 + x2) / 2, y1, abs(x1 - x2), abs(y1 - y2), (3 * PI) / 2, 2*PI));
+          return 2;
+      } else if (s == 0) {
+          line(x1, y1, x2, y2);
+          return 0;
+      } else {
+          arcArr.add(new EllipseAA((x1 + x2) / 2, y2, abs(x1 - x2), abs(y1 - y2), PI, (3 * PI) / 2));
+          arcArr.add(new EllipseAA((x1 + x2) / 2, y1, abs(x1 - x2), abs(y1 - y2), 0, PI / 2));
+          return 2;
+      }
+  } else {  //corner
+      if (y1 < y2) {
+          if (y * gridL == y1) {
+              arcArr.add(new EllipseAA(x2, y1, 2 * abs(x2 - x1), 2 * abs(y2 - y1), 0, PI / 2));
+              return 1;
+          } else {
+              arcArr.add(new EllipseAA(x1, y2, 2 * abs(x2 - x1), 2 * abs(y2 - y1), PI, (3 * PI) / 2));
+              return 1;
+          }
+      } else {
+          if ((y + 1) * gridL == y1) {
+              arcArr.add(new EllipseAA(x2, y1, 2 * abs(x2 - x1), 2 * abs(y2 - y1), (3 * PI) / 2, 2*PI));
+              return 1;
+          } else {
+              arcArr.add(new EllipseAA(x1, y2, 2 * abs(x2 - x1), 2 * abs(y2 - y1), PI / 2, PI));
+              return 1;
+          }
+      }
   }
 }
 
+
 void setup() {
-  size(1600, 1600);
+  size(800, 800);
   
   beginRecord(SVG, "testoutp.svg");
   
@@ -70,191 +159,201 @@ void setup() {
   
   float gridL = width / (float)gridN;
   
-  for (int y = 0; y < gridN; y++) {
-    iArr.add(new ArrayList<ArrayList<ArrayList<PVector>>>());
-    for (int x = 0; x < gridN; x++) {
-      iArr.get(y).add(new ArrayList<ArrayList<PVector>>());
-      for (int i = 0; i < 5; i++) {
-        iArr.get(y).get(x).add(new ArrayList<PVector>());
-      }
+  PVector curCell = new PVector(0, 0);
+  PVector curPos = new PVector(gridL, gridL/2);
+  PVector nextCell = new PVector(-1, -1);
+  PVector nextPos = new PVector(-1, -1);
+  
+  ArrayList<EllipseAA>[][] arcArrList = new ArrayList[gridN][gridN];  //create and initialize the arc data struct (2D array of arraylists of arcs
+  for(int x = 0; x < gridN; x++){
+    for(int y = 0; y < gridN; y++){
+      arcArrList[y][x] = new ArrayList<EllipseAA>();
     }
   }
-  
-  if(debugGrid) {
-    for(int i = 1; i< gridN; i++) {
-      line(0, i*gridL, height, i*gridL);
-    }
-    for(int i = 1; i< gridN; i++) {
-      line(i*gridL, 0, i*gridL, width);
-    }
-  }
-  
-  for (int i = 0; i <= scribbleLen; i++) {
-    vList.add(new PVector(random(width), random(height)));
-  }
-  vList.add(vList.get(0));
-  
-  //beginShape();
-  //for(int i = 0; i < vList.size(); i++) {
-  //  vertex(vList.get(i).x, vList.get(i).y);
-  //}
-  //endShape();
-  
-  for (int i = 0; i < vList.size() - 1; i++) {
-    float x1 = vList.get(i).x;
-    float y1 = vList.get(i).y;
-    float x2 = vList.get(i + 1).x;
-    float y2 = vList.get(i + 1).y;
     
-    float s = findSlope(x1, y1, x2, y2);
-    
-    float yPos, xPos;
-
-    // First loop
-    for (float j = (x1 - (x1 % gridL)) + gridL; j <= (x2 - (x2 % gridL)); j += gridL) {
-        yPos = y1 + (j - x1) * s;
-        PVector point = new PVector(j, yPos);
-        iArr.get((int)(yPos / gridL)).get((int)(j / gridL)).get(3).add(point);
-        iArr.get((int)(yPos / gridL)).get((int)(j / gridL) - 1).get(1).add(point);
-        iArr.get((int)(yPos / gridL)).get((int)(j / gridL)).get(4).add(point);
-        iArr.get((int)(yPos / gridL)).get((int)(j / gridL) - 1).get(4).add(point);
-    }
-    
-    // Second loop - Note the conditions in the loop may need to be adjusted depending on the specific logic of traversal
-    for (float j = (x2 - (x2 % gridL)) + gridL; j <= (x1 - (x1 % gridL)); j += gridL) {
-        yPos = y1 + (j - x1) * s;
-        PVector point = new PVector(j, yPos);
-        iArr.get((int)(yPos / gridL)).get((int)(j / gridL)).get(3).add(point);
-        iArr.get((int)(yPos / gridL)).get((int)(j / gridL) - 1).get(1).add(point);
-        iArr.get((int)(yPos / gridL)).get((int)(j / gridL)).get(4).add(point);
-        iArr.get((int)(yPos / gridL)).get((int)(j / gridL) - 1).get(4).add(point);
-    }
-    
-    // Third loop
-    for (float j = (y1 - (y1 % gridL)) + gridL; j <= (y2 - (y2 % gridL)); j += gridL) {
-        xPos = x1 + (j - y1) / s;
-        PVector point = new PVector(xPos, j);
-        iArr.get((int)(j / gridL)).get((int)(xPos / gridL)).get(0).add(point);
-        iArr.get((int)(j / gridL) - 1).get((int)(xPos / gridL)).get(2).add(point);
-        iArr.get((int)(j / gridL)).get((int)(xPos / gridL)).get(4).add(point);
-        iArr.get((int)(j / gridL) - 1).get((int)(xPos / gridL)).get(4).add(point);
-    }
-    
-    // Fourth loop
-    for (float j = (y2 - (y2 % gridL)) + gridL; j <= (y1 - (y1 % gridL)); j += gridL) {
-        xPos = x1 + (j - y1) / s;
-        PVector point = new PVector(xPos, j);
-        iArr.get((int)(j / gridL)).get((int)(xPos / gridL)).get(0).add(point);
-        iArr.get((int)(j / gridL) - 1).get((int)(xPos / gridL)).get(2).add(point);
-        iArr.get((int)(j / gridL)).get((int)(xPos / gridL)).get(4).add(point);
-        iArr.get((int)(j / gridL) - 1).get((int)(xPos / gridL)).get(4).add(point);
-    }
-
-    
-  }
   
-  
-  //MIGHT BE WRONG
-  for (int y = 0; y < gridN; y++) {
-    for (int x = 0; x < gridN; x++) {
-        centroid = new PVector(x * gridL + gridL / 2, y * gridL + gridL / 2);
-        
-        if(iArr.get(y).get(x).get(4).size() % 2 == 1) {
-          println("before sort: ", iArr.get(y).get(x).get(4));
+  for (int i = 0; i < iters; i++) {
+    ArrayList<EllipseAA> arcCell = arcArrList[int(curCell.x)][int(curCell.y)];
+    boolean intersects = true;
+    int attempts = 0;
+    while(intersects && attempts < maxAttempts) {
+      nextCell = randomGridStep(curCell);
+      nextPos.x = nextCell.x*gridL;
+      nextPos.y = nextCell.y*gridL;
+      if(nextCell.x == curCell.x) {  //vertical cell change
+        nextPos.x = nextCell.x*gridL + int(random(gridL));
+        if(nextCell.y > curCell.y) {  //cell went down
+          nextPos.y = nextCell.y*gridL;
         }
-
-        // Sort the ArrayList<PVector> based on angle to centroid
-        Collections.sort(iArr.get(y).get(x).get(4), new Comparator<PVector>() {
-            public int compare(PVector p1, PVector p2) {
-                float angle1 = PVector.sub(p1, centroid).heading();
-                float angle2 = PVector.sub(p2, centroid).heading();
-                return Float.compare(angle1, angle2);
-            }
-        });
+        else {  //cell went up
+          nextPos.y = (nextCell.y+1)*gridL;
+        }
+      }
+      else {  //horizontal cell change
+         nextPos.y = nextCell.y*gridL + int(random(gridL));
+        if(nextCell.x > curCell.x) {  //cell went down
+          nextPos.x = nextCell.x*gridL;
+        }
+        else {  //cell went up
+          nextPos.x = (nextCell.x+1)*gridL;
+        }   
         
+      }
+    
+      intersects = false;
+      int numArcs = generateArc(arcCell, gridL, curCell, curPos, nextPos);
+      
+      EllipseAA Arc1 = arcCell.get(arcCell.size()-1);
+      for(int j = 0; j < arcCell.size()-numArcs; j++) {
+        EllipseAA Arc2 = arcCell.get(j);
+        if(arcsTooClosePseudo(Arc1, Arc2, lineSep, 1440, 1e-8)) {
+          intersects = true;
+        }
+      }
+      
+      if(numArcs == 2) {
+        Arc1 = arcCell.get(arcCell.size()-2);
+        for(int j = 0; j < arcCell.size()-numArcs; j++) {
+          EllipseAA Arc2 = arcCell.get(j);
+          if(arcsTooClosePseudo(Arc1, Arc2, lineSep, 1440, 1e-8)) {
+            intersects = true;
+          }
+        }
+      }
+      
+      if(intersects) {
+        attempts++;
+        arcCell.remove(arcCell.size()-1);
+        fails++;
+        if(numArcs == 2) {
+          arcCell.remove(arcCell.size()-1);
+          fails++;
+        }
+      }
+    }
+    
+    if(attempts == maxAttempts) {  //if failed to find a next arc
+      int totArcs = arcCell.size();
+      
+      
+      
+      
+      
+      
+      
+      curCell.x = int(random(gridN)); curCell.y = int(random(gridN));
+      if(random(1) < 0.5) {
+        curPos.x = curCell.x*gridL+int(random(gridL));
+        curPos.y = curCell.y*gridL+int(random(2))*gridL;
+      }
+      else{
+        curPos.y = curCell.y*gridL+int(random(gridL));
+        curPos.x = curCell.x*gridL+int(random(2))*gridL;
+      }
+    }
+    else {
+      curCell.x = nextCell.x; curCell.y = nextCell.y;
+      curPos.x = nextPos.x; curPos.y = nextPos.y;
     }
   }
   
-  ArrayList<PVector[]> lineArr;
-
-  for (int y = 0; y < gridN; y++) {
-      for (int x = 0; x < gridN; x++) {
-          
-          lineArr = connectPts(iArr.get(y).get(x).get(4), new ArrayList<PVector[]>());
-          
-          for (int i = 0; i < lineArr.size(); i++) {
-              PVector p1 = lineArr.get(i)[0];
-              PVector p2 = lineArr.get(i)[1];
-              
-              float x1;
-              float y1;
-              float x2;
-              float y2;
-              
-              if (p1.x > p2.x) {
-                  x1 = p1.x;
-                  y1 = p1.y;
-                  x2 = p2.x;
-                  y2 = p2.y;
-              } else {
-                  x2 = p1.x;
-                  y2 = p1.y;
-                  x1 = p2.x;
-                  y1 = p2.y;
-              }
-              
-              float startAng;
-              
-              if (x1 == x2) {  //side top and bottom
-                  startAng = x1 == x * gridL ? (3 * PI) / 2 : PI / 2;
-                  arc(x1, (y1 + y2) / 2, abs(y1 - y2), abs(y1 - y2), startAng, startAng + PI);
-              } else if (y1 == y2) {  //side left and right
-                  startAng = y1 == y * gridL ? 0 : PI;
-                  arc((x1 + x2) / 2, y1, abs(x1 - x2), abs(x1 - x2), startAng, startAng + PI);
-              } else if (abs(x1 - x2) == gridL) {  //cross left and right
-                  float s = (y2 - y1) / (x2 - x1);
-                  if (s > 0) {
-                      arc(x1, (y1 + y2) / 2, abs(x1 - x2), abs(y1 - y2), PI / 2, PI);
-                      arc(x2, (y1 + y2) / 2, abs(x1 - x2), abs(y1 - y2), (3 * PI) / 2, 2*PI);
-                  } else if (s == 0) {
-                      line(x1, y1, x2, y2);
-                  } else {
-                      arc(x1, (y1 + y2) / 2, abs(x1 - x2), abs(y1 - y2), PI, (3 * PI) / 2);
-                      arc(x2, (y1 + y2) / 2, abs(x1 - x2), abs(y1 - y2), 0, PI / 2);
-                  }
-              } else if (abs(y1 - y2) == gridL) {  //cross top and bottom
-                  float s = (y2 - y1) / (x2 - x1);
-                  if (s > 0) {
-                      arc((x1 + x2) / 2, y2, abs(x1 - x2), abs(y1 - y2), PI / 2, PI);
-                      arc((x1 + x2) / 2, y1, abs(x1 - x2), abs(y1 - y2), (3 * PI) / 2, 2*PI);
-                  } else if (s == 0) {
-                      line(x1, y1, x2, y2);
-                  } else {
-                      arc((x1 + x2) / 2, y2, abs(x1 - x2), abs(y1 - y2), PI, (3 * PI) / 2);
-                      arc((x1 + x2) / 2, y1, abs(x1 - x2), abs(y1 - y2), 0, PI / 2);
-                  }
-              } else {  //corner
-                  if (y1 < y2) {
-                      if (y * gridL == y1) {
-                          arc(x2, y1, 2 * abs(x2 - x1), 2 * abs(y2 - y1), 0, PI / 2);
-                      } else {
-                          arc(x1, y2, 2 * abs(x2 - x1), 2 * abs(y2 - y1), PI, (3 * PI) / 2);
-                      }
-                  } else {
-                      if ((y + 1) * gridL == y1) {
-                          arc(x2, y1, 2 * abs(x2 - x1), 2 * abs(y2 - y1), (3 * PI) / 2, 2*PI);
-                      } else {
-                          arc(x1, y2, 2 * abs(x2 - x1), 2 * abs(y2 - y1), PI / 2, PI);
-                      }
-                  }
-              }
-          }
+  
+  //Draw all arcs at the end
+  for(int x = 0; x < gridN; x++){
+    for(int y = 0; y < gridN; y++){
+      ArrayList<EllipseAA> thisCell = arcArrList[y][x];
+      for(int i = 0; i < thisCell.size(); i++) {
+        drawArc(thisCell.get(i));
       }
+    }
   }
-  
-  
-  
   
   endRecord();
   
+  println(fails/float(iters));
+  
+}
+
+
+
+
+
+
+
+
+private static double[] pointOnEllipseAA_diam(EllipseAA e, double t) {
+  double rx = 0.5 * e.a; // radii = diam/2
+  double ry = 0.5 * e.b;
+  double x = e.cx + rx * Math.cos(t);
+  double y = e.cy + ry * Math.sin(t);
+  return new double[]{x, y};
+}
+
+// --- 1) Pseudo-distance helper (diameters in EllipseAA) ---
+private static double approxDistanceToEllipseBoundary_diam(EllipseAA e, double x, double y) {
+  double rx = 0.5 * e.a, ry = 0.5 * e.b;
+  double dx = x - e.cx, dy = y - e.cy;
+
+  // Implicit value (level set 0 is the ellipse)
+  double F = (dx*dx)/(rx*rx) + (dy*dy)/(ry*ry) - 1.0;
+
+  // Gradient norm
+  double gx = 2.0 * dx / (rx*rx);
+  double gy = 2.0 * dy / (ry*ry);
+  double gnorm = Math.hypot(gx, gy);
+
+  // If gradient is (pathologically) zero, return a large distance
+  if (gnorm < 1e-12) return Double.POSITIVE_INFINITY;
+
+  return Math.abs(F) / gnorm;
+}
+
+// --- 2) Cheap bbox with a D margin for early-out ---
+private static boolean bboxCloserThan_diam(EllipseAA e1, EllipseAA e2, double D) {
+  double rx1 = 0.5 * e1.a, ry1 = 0.5 * e1.b;
+  double rx2 = 0.5 * e2.a, ry2 = 0.5 * e2.b;
+  double l1 = e1.cx - rx1 - D, r1 = e1.cx + rx1 + D;
+  double t1 = e1.cy - ry1 - D, b1 = e1.cy + ry1 + D;
+  double l2 = e2.cx - rx2,     r2 = e2.cx + rx2;
+  double t2 = e2.cy - ry2,     b2 = e2.cy + ry2;
+  return !(r1 < l2 || r2 < l1 || b1 < t2 || b2 < t1);
+}
+
+// --- 3) New proximity checker using pseudo-distance ---
+public static boolean arcsTooClosePseudo(EllipseAA A, EllipseAA B,
+                                         double D, int samples, double eps) {
+  // Early-out: if even the expanded boxes don't touch, they can't be within D
+  if (!bboxCloserThan_diam(A, B, D)) return false;
+
+  double[] sA = normSpan(A.i, A.f);
+  double[] sB = normSpan(B.i, B.f);
+
+  // Sample arc A and measure distance to ellipse B's boundary
+  for (int k = 0; k < samples; k++) {
+    double t = sA[0] + (sA[1] - sA[0]) * (k / (double)(samples - 1));
+    double[] p = pointOnEllipseAA_diam(A, t);
+    double d = approxDistanceToEllipseBoundary_diam(B, p[0], p[1]);
+    if (d <= D - eps) return true;
+  }
+
+  // Symmetric pass: sample arc B, distance to ellipse A
+  for (int k = 0; k < samples; k++) {
+    double t = sB[0] + (sB[1] - sB[0]) * (k / (double)(samples - 1));
+    double[] p = pointOnEllipseAA_diam(B, t);
+    double d = approxDistanceToEllipseBoundary_diam(A, p[0], p[1]);
+    if (d <= D - eps) return true;
+  }
+
+  return false;
+}
+
+
+// Normalize [i,f] to a forward, monotone interval of length in (0, 2π]
+private static double[] normSpan(double i, double f) {
+  final double TWO_PI = 2.0 * Math.PI;
+  i = i % TWO_PI; if (i < 0) i += TWO_PI;
+  f = f % TWO_PI; if (f < 0) f += TWO_PI;
+  double len = f - i;
+  if (len <= 0) len += TWO_PI;
+  return new double[]{ i, i + len }; // monotone [i, i+len]
 }
