@@ -4,13 +4,29 @@ import java.util.Comparator;
 
 
 public static final class EllipseAA {
-  public final double cx, cy;   // center
-  public final double a, b;     // semi-axes (a = radius on x, b = radius on y)
-  public final double i, f;
-  public EllipseAA(double cx, double cy, double a, double b, double i, double f) {
-    this.cx = cx; this.cy = cy; this.a = a; this.b = b; this.i = i; this.f = f;
+  public final float cx, cy;   // center
+  public final float a, b;     // semi-axes (a = radius on x, b = radius on y)
+  public final float i, f;     // start and end angles (radians)
+
+  public final PVector start;
+  public final PVector end;
+
+  public EllipseAA(float cx, float cy, float a, float b, float i, float f) {
+    this.cx = cx;
+    this.cy = cy;
+    this.a  = a;
+    this.b  = b;
+    this.i  = i;
+    this.f  = f;
+
+    // Calculate start point (based on i)
+    this.start = new PVector(cx + (a/2) * (float)Math.cos(i), cy + (b/2) * (float)Math.sin(i));
+
+    // Calculate end point (based on f)
+    this.end = new PVector(cx + (a/2) * (float)Math.cos(f), cy + (b/2) * (float)Math.sin(f));
   }
 }
+
 
 //debug
 float fails = 0.0;
@@ -149,6 +165,45 @@ int generateArc(ArrayList<EllipseAA> arcArr, float gridL, PVector cell, PVector 
 }
 
 
+ArrayList<PVector[]> connectPts(ArrayList<PVector> arr, ArrayList<PVector[]> lineArr) {
+  if (arr.size() == 0) {
+    return lineArr;
+  } else if (arr.size() == 2) {
+    // println(arr.get(0).x + ", " + arr.get(1).x);
+    lineArr.add(new PVector[] { arr.get(0), arr.get(1) });
+    return lineArr;
+  } else {
+    int p1 = int(random(0, arr.size()));
+    int p2 = (p1 + 1 + 2 * int(random(0, arr.size() / 2))) % arr.size();
+    lineArr.add(new PVector[] { arr.get(p1), arr.get(p2) });
+    // println(arr.get(p1).x + ", " + arr.get(p2).x);
+
+    ArrayList<PVector> arr1, arr2;
+    if (p1 < p2) {
+      arr1 = new ArrayList<PVector>(arr.subList(p1 + 1, p2));
+      arr2 = new ArrayList<PVector>();
+      arr2.addAll(arr.subList(p2 + 1, arr.size()));
+      arr2.addAll(arr.subList(0, p1));
+    } else {
+      if(arr.size()%2 == 1) {
+        println(arr.size());
+      }
+      if(p1 == p2) {
+        println(p1, p2, arr);
+      }
+      arr1 = new ArrayList<PVector>(arr.subList(p2 + 1, p1));
+      arr2 = new ArrayList<PVector>();
+      arr2.addAll(arr.subList(p1 + 1, arr.size()));
+      arr2.addAll(arr.subList(0, p2));
+    }
+
+    ArrayList<PVector[]> retarr1 = connectPts(arr1, lineArr);
+    ArrayList<PVector[]> retarr2 = connectPts(arr2, lineArr);
+    return lineArr;
+  }
+}
+
+
 void setup() {
   size(800, 800);
   
@@ -233,7 +288,12 @@ void setup() {
     }
     
     if(attempts == maxAttempts) {  //if failed to find a next arc
-      int totArcs = arcCell.size();
+      ArrayList<PVector> cellInters = new ArrayList<PVector>();
+      for(int j = 0; j < arcCell.size(); j++) {
+        cellInters.add(arcCell.get(j).start);
+        cellInters.add(arcCell.get(j).end);
+      }
+      cellInters.add(curPos);
       
       
       
