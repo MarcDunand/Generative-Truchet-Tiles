@@ -34,7 +34,7 @@ float fails = 0.0;
 
 int gridN = 10;
 int  scribbleLen = 20;
-int iters = 800;
+int iters = 400;
 int maxAttempts = 20;
 double lineSep = 2;
 boolean debugGrid = false;
@@ -165,23 +165,23 @@ int generateArc(ArrayList<EllipseAA> arcArr, float gridL, PVector cell, PVector 
 }
 
 
-ArrayList<PVector[]> connectPts(ArrayList<PVector> arr, ArrayList<PVector[]> lineArr) {
+ArrayList<int[]> connectPts(ArrayList<Integer> arr, ArrayList<int[]> lineArr) {
   if (arr.size() == 0) {
     return lineArr;
   } else if (arr.size() == 2) {
     // println(arr.get(0).x + ", " + arr.get(1).x);
-    lineArr.add(new PVector[] { arr.get(0), arr.get(1) });
+    lineArr.add(new int[] {arr.get(0), arr.get(1)});
     return lineArr;
   } else {
     int p1 = int(random(0, arr.size()));
     int p2 = (p1 + 1 + 2 * int(random(0, arr.size() / 2))) % arr.size();
-    lineArr.add(new PVector[] { arr.get(p1), arr.get(p2) });
+    lineArr.add(new int[] { arr.get(p1), arr.get(p2) });
     // println(arr.get(p1).x + ", " + arr.get(p2).x);
 
-    ArrayList<PVector> arr1, arr2;
+    ArrayList<Integer> arr1, arr2;
     if (p1 < p2) {
-      arr1 = new ArrayList<PVector>(arr.subList(p1 + 1, p2));
-      arr2 = new ArrayList<PVector>();
+      arr1 = new ArrayList<Integer>(arr.subList(p1 + 1, p2));
+      arr2 = new ArrayList<Integer>();
       arr2.addAll(arr.subList(p2 + 1, arr.size()));
       arr2.addAll(arr.subList(0, p1));
     } else {
@@ -191,14 +191,14 @@ ArrayList<PVector[]> connectPts(ArrayList<PVector> arr, ArrayList<PVector[]> lin
       if(p1 == p2) {
         println(p1, p2, arr);
       }
-      arr1 = new ArrayList<PVector>(arr.subList(p2 + 1, p1));
-      arr2 = new ArrayList<PVector>();
+      arr1 = new ArrayList<Integer>(arr.subList(p2 + 1, p1));
+      arr2 = new ArrayList<Integer>();
       arr2.addAll(arr.subList(p1 + 1, arr.size()));
       arr2.addAll(arr.subList(0, p2));
     }
 
-    ArrayList<PVector[]> retarr1 = connectPts(arr1, lineArr);
-    ArrayList<PVector[]> retarr2 = connectPts(arr2, lineArr);
+    ArrayList<int[]> retarr1 = connectPts(arr1, lineArr);
+    ArrayList<int[]> retarr2 = connectPts(arr2, lineArr);
     return lineArr;
   }
 }
@@ -288,33 +288,92 @@ void setup() {
     }
     
     if(attempts == maxAttempts) {  //if failed to find a next arc
+    
+      //find all cell inters
       ArrayList<PVector> cellInters = new ArrayList<PVector>();
       for(int j = 0; j < arcCell.size(); j++) {
         cellInters.add(arcCell.get(j).start);
         cellInters.add(arcCell.get(j).end);
       }
       cellInters.add(curPos);
+             
+
+      // Sort the ArrayList<PVector> based on angle to centroid
+      PVector centroid = new PVector(curCell.x*gridL + gridL / 2, curCell.y*gridL + gridL / 2);
+
+      Collections.sort(cellInters, new Comparator<PVector>() {
+          public int compare(PVector p1, PVector p2) {
+              float angle1 = PVector.sub(p1, centroid).heading();
+              float angle2 = PVector.sub(p2, centroid).heading();
+              return Float.compare(angle1, angle2);
+          }
+      });
       
+      int newStartIdx = 0;
+      ArrayList<int[]> interPairsEmpty = new ArrayList<int[]>();
+      ArrayList<Integer> interIdxs = new ArrayList<Integer>();
       
-      
-      
-      
-      
-      
-      curCell.x = int(random(gridN)); curCell.y = int(random(gridN));
-      if(random(1) < 0.5) {
-        curPos.x = curCell.x*gridL+int(random(gridL));
-        curPos.y = curCell.y*gridL+int(random(2))*gridL;
+      boolean anyIntersects = true;
+      while(anyIntersects) {
+        anyIntersects = false;
+        
+        interPairsEmpty.clear();
+        interIdxs.clear();
+        
+        for(int j = 0; j < cellInters.size(); j++) {
+          interIdxs.add(j);
+        }
+        newStartIdx = int(random(interIdxs.size()));
+        interIdxs.remove(newStartIdx);
+        
+        ArrayList<int[]> interPairIdxs = connectPts(interIdxs, interPairsEmpty);
+
+        arcCell.clear();
+        for(int j = 0; j < interPairIdxs.size(); j++) {
+          generateArc(arcCell, gridL, curCell, cellInters.get(interPairIdxs.get(j)[0]), cellInters.get(interPairIdxs.get(j)[1]));
+        }
+        
+        int j = 0;
+        while(j < arcCell.size() && !anyIntersects) {
+          int k = j+1;
+          while(k < arcCell.size() && !anyIntersects) {
+            if(arcsTooClosePseudo(arcCell.get(j), arcCell.get(k), lineSep, 1440, 1e-8)) {
+              anyIntersects = true;
+            }
+            k++;
+          }
+          j++;
+        }
       }
-      else{
-        curPos.y = curCell.y*gridL+int(random(gridL));
-        curPos.x = curCell.x*gridL+int(random(2))*gridL;
-      }
+      
+      
+      curPos.x = cellInters.get(newStartIdx).x;
+      curPos.y = cellInters.get(newStartIdx).y;
+      
+      
+
+      
+      
+      
+      
+      
+      
+      
+      //curCell.x = int(random(gridN)); curCell.y = int(random(gridN));
+      //if(random(1) < 0.5) {
+      //  curPos.x = curCell.x*gridL+int(random(gridL));
+      //  curPos.y = curCell.y*gridL+int(random(2))*gridL;
+      //}
+      //else{
+      //  curPos.y = curCell.y*gridL+int(random(gridL));
+      //  curPos.x = curCell.x*gridL+int(random(2))*gridL;
+      //}
     }
     else {
       curCell.x = nextCell.x; curCell.y = nextCell.y;
       curPos.x = nextPos.x; curPos.y = nextPos.y;
     }
+    print(i, " ");
   }
   
   
