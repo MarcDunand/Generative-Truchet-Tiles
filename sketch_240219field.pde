@@ -1,6 +1,7 @@
 import processing.svg.*;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.*;
 
 
 public static final class EllipseAA {
@@ -33,15 +34,11 @@ float fails = 0.0;
 
 
 int gridN = 10;
-int  scribbleLen = 20;
-int iters = 400;
-int maxAttempts = 20;
+int iters = 200;
+int maxAttempts = 3;
 double lineSep = 2;
 boolean debugGrid = false;
 
-ArrayList<PVector> vList = new ArrayList<PVector>();
-ArrayList<PVector> iList = new ArrayList<PVector>();
-ArrayList<ArrayList<ArrayList<ArrayList<PVector>>>> iArr = new ArrayList<ArrayList<ArrayList<ArrayList<PVector>>>>();
 PVector centroid = new PVector();
 
 
@@ -164,18 +161,30 @@ int generateArc(ArrayList<EllipseAA> arcArr, float gridL, PVector cell, PVector 
   }
 }
 
+//working on trying to never double check the same wiring within a given tile
+//int[] connectPtsSeed(ArrayList<Integer> arr) {
+//  int arrLen = arr.size();
+//  int steps = arrLen/2;
+//  int[] choices = new int[steps];
+//  choices[0] = int(random(arrLen));
+//  choices[1] = int(random(steps));
+  
+//  return choices;
+//}
 
-ArrayList<int[]> connectPts(ArrayList<Integer> arr, ArrayList<int[]> lineArr) {
+
+ArrayList<int[]> connectPts(ArrayList<Integer> arr, ArrayList<Integer> lineArr) {
   if (arr.size() == 0) {
     return lineArr;
   } else if (arr.size() == 2) {
-    // println(arr.get(0).x + ", " + arr.get(1).x);
-    lineArr.add(new int[] {arr.get(0), arr.get(1)});
+    lineArr.add(arr.get(0));
+    lineArr.add(arr.get(1));
     return lineArr;
   } else {
     int p1 = int(random(0, arr.size()));
     int p2 = (p1 + 1 + 2 * int(random(0, arr.size() / 2))) % arr.size();
-    lineArr.add(new int[] { arr.get(p1), arr.get(p2) });
+    lineArr.add(arr.get(p1));
+    lineArr.add(arr.get(p2));
     // println(arr.get(p1).x + ", " + arr.get(p2).x);
 
     ArrayList<Integer> arr1, arr2;
@@ -197,8 +206,8 @@ ArrayList<int[]> connectPts(ArrayList<Integer> arr, ArrayList<int[]> lineArr) {
       arr2.addAll(arr.subList(0, p2));
     }
 
-    ArrayList<int[]> retarr1 = connectPts(arr1, lineArr);
-    ArrayList<int[]> retarr2 = connectPts(arr2, lineArr);
+    ArrayList<Integer> retarr1 = connectPts(arr1, lineArr);
+    ArrayList<Integer> retarr2 = connectPts(arr2, lineArr);
     return lineArr;
   }
 }
@@ -219,7 +228,7 @@ void setup() {
   PVector nextCell = new PVector(-1, -1);
   PVector nextPos = new PVector(-1, -1);
   
-  ArrayList<EllipseAA>[][] arcArrList = new ArrayList[gridN][gridN];  //create and initialize the arc data struct (2D array of arraylists of arcs
+  ArrayList<EllipseAA>[][] arcArrList = new ArrayList[gridN][gridN];  //create and initialize the arc data struct (2D array of arraylists of arcs)
   for(int x = 0; x < gridN; x++){
     for(int y = 0; y < gridN; y++){
       arcArrList[y][x] = new ArrayList<EllipseAA>();
@@ -231,6 +240,9 @@ void setup() {
     ArrayList<EllipseAA> arcCell = arcArrList[int(curCell.x)][int(curCell.y)];
     boolean intersects = true;
     int attempts = 0;
+    
+    Set<List<Integer>> invalidWiringSet = new HashSet<>();
+    
     while(intersects && attempts < maxAttempts) {
       nextCell = randomGridStep(curCell);
       nextPos.x = nextCell.x*gridL;
@@ -310,7 +322,7 @@ void setup() {
       });
       
       int newStartIdx = 0;
-      ArrayList<int[]> interPairsEmpty = new ArrayList<int[]>();
+      ArrayList<Integer> interPairsEmpty = new ArrayList<Integer>();
       ArrayList<Integer> interIdxs = new ArrayList<Integer>();
       
       boolean anyIntersects = true;
@@ -326,7 +338,12 @@ void setup() {
         newStartIdx = int(random(interIdxs.size()));
         interIdxs.remove(newStartIdx);
         
-        ArrayList<int[]> interPairIdxs = connectPts(interIdxs, interPairsEmpty);
+        boolean alreadyAttempted = true;
+        
+        while(alreadyAttempted) {
+          ArrayList<Integer> interPairIdxs = connectPts(interIdxs, interPairsEmpty);
+          invalidWiringSet.add(interPairIdxs);
+        }
 
         arcCell.clear();
         for(int j = 0; j < interPairIdxs.size(); j++) {
