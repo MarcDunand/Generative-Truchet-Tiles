@@ -33,8 +33,8 @@ public static final class EllipseAA {
 float fails = 0.0;
 
 
-int gridN = 10;
-int iters = 200;
+int gridN = 20;
+int iters = 1000;
 int maxAttempts = 3;
 double lineSep = 2;
 boolean debugGrid = false;
@@ -173,47 +173,112 @@ int generateArc(ArrayList<EllipseAA> arcArr, float gridL, PVector cell, PVector 
 //}
 
 
-ArrayList<int[]> connectPts(ArrayList<Integer> arr, ArrayList<Integer> lineArr) {
-  if (arr.size() == 0) {
-    return lineArr;
-  } else if (arr.size() == 2) {
-    lineArr.add(arr.get(0));
-    lineArr.add(arr.get(1));
-    return lineArr;
-  } else {
-    int p1 = int(random(0, arr.size()));
-    int p2 = (p1 + 1 + 2 * int(random(0, arr.size() / 2))) % arr.size();
-    lineArr.add(arr.get(p1));
-    lineArr.add(arr.get(p2));
-    // println(arr.get(p1).x + ", " + arr.get(p2).x);
+// Compute Catalan numbers C[0..maxN] (double is fine for moderate sizes)
+double[] catalanNumbers(int maxN) {
+  double[] C = new double[maxN + 1];
+  C[0] = 1.0;
+  for (int n = 1; n <= maxN; n++) {
+    double total = 0.0;
+    for (int i = 0; i < n; i++) {
+      total += C[i] * C[n - 1 - i];
+    }
+    C[n] = total;
+  }
+  return C;
+}
 
-    ArrayList<Integer> arr1, arr2;
-    if (p1 < p2) {
-      arr1 = new ArrayList<Integer>(arr.subList(p1 + 1, p2));
-      arr2 = new ArrayList<Integer>();
-      arr2.addAll(arr.subList(p2 + 1, arr.size()));
-      arr2.addAll(arr.subList(0, p1));
-    } else {
-      if(arr.size()%2 == 1) {
-        println(arr.size());
-      }
-      if(p1 == p2) {
-        println(p1, p2, arr);
-      }
-      arr1 = new ArrayList<Integer>(arr.subList(p2 + 1, p1));
-      arr2 = new ArrayList<Integer>();
-      arr2.addAll(arr.subList(p1 + 1, arr.size()));
-      arr2.addAll(arr.subList(0, p2));
+// interIdxs: indices into cellInters, in circular order.
+// returns: list of {idxA, idxB} pairs (indices into cellInters),
+//          forming a uniformly random non-crossing pairing.
+ArrayList<int[]> connectPts(ArrayList<Integer> interIdxs) {
+  int n = interIdxs.size();
+  if ((n & 1) == 1) {
+    println("connectPts: WARNING: called with odd number of indices (" + n + ")");
+    return new ArrayList<int[]>();
+  }
+
+  // Catalan numbers up to n/2
+  double[] C = catalanNumbers(n / 2);
+
+  // First, build a non-crossing matching on positions 0..n-1
+  ArrayList<int[]> posPairs = new ArrayList<int[]>();
+  Deque<int[]> stack = new ArrayDeque<int[]>();
+  stack.push(new int[]{0, n - 1});  // interval [L,R] in position space
+
+  while (!stack.isEmpty()) {
+    int[] interval = stack.pop();
+    int L = interval[0];
+    int R = interval[1];
+
+    int m = R - L + 1;
+    if (m <= 0) {
+      continue;
+    }
+    if (m == 2) {
+      // Only two points in this interval: must be paired
+      posPairs.add(new int[]{L, R});
+      continue;
     }
 
-    ArrayList<Integer> retarr1 = connectPts(arr1, lineArr);
-    ArrayList<Integer> retarr2 = connectPts(arr2, lineArr);
-    return lineArr;
+    // Possible partners for L: L+1, L+3, ..., R
+    ArrayList<Integer> options = new ArrayList<Integer>();
+    for (int k = L + 1; k <= R; k += 2) {
+      options.add(k);
+    }
+
+    // Weight for each option: C[a/2] * C[b/2]
+    double[] weights = new double[options.size()];
+    double totalWeight = 0.0;
+    for (int i = 0; i < options.size(); i++) {
+      int k = options.get(i);
+      int a = k - L - 1;  // points strictly between L and k
+      int b = R - k;      // points strictly between k and R
+      int leftPairs  = a / 2;
+      int rightPairs = b / 2;
+      double w = C[leftPairs] * C[rightPairs];
+      weights[i] = w;
+      totalWeight += w;
+    }
+
+    // Randomly choose k with probability proportional to weights
+    double r = random((float)totalWeight);
+    double acc = 0.0;
+    int chosenK = options.get(options.size() - 1);  // fallback
+    for (int i = 0; i < options.size(); i++) {
+      acc += weights[i];
+      if (r <= acc) {
+        chosenK = options.get(i);
+        break;
+      }
+    }
+
+    // Record the pair in position space
+    posPairs.add(new int[]{L, chosenK});
+
+    // Push subintervals (if non-empty)
+    if (chosenK - L > 1) {
+      stack.push(new int[]{L + 1, chosenK - 1});
+    }
+    if (R - chosenK > 0) {
+      stack.push(new int[]{chosenK + 1, R});
+    }
   }
+
+  // Map position pairs back to actual indices in interIdxs
+  ArrayList<int[]> result = new ArrayList<int[]>();
+  for (int[] pp : posPairs) {
+    int idxA = interIdxs.get(pp[0]);
+    int idxB = interIdxs.get(pp[1]);
+    result.add(new int[]{idxA, idxB});
+  }
+
+  return result;
 }
 
 
+
 void setup() {
+  pixelDensity(1);
   size(800, 800);
   
   beginRecord(SVG, "testoutp.svg");
@@ -340,10 +405,10 @@ void setup() {
         
         boolean alreadyAttempted = true;
         
-        while(alreadyAttempted) {
-          ArrayList<Integer> interPairIdxs = connectPts(interIdxs, interPairsEmpty);
-          invalidWiringSet.add(interPairIdxs);
-        }
+        //while(alreadyAttempted) {
+          ArrayList<int[]> interPairIdxs = connectPts(interIdxs);
+          //invalidWiringSet.add(interPairIdxs);  // whatever Set type you’re using
+        //}
 
         arcCell.clear();
         for(int j = 0; j < interPairIdxs.size(); j++) {
@@ -367,24 +432,6 @@ void setup() {
       curPos.x = cellInters.get(newStartIdx).x;
       curPos.y = cellInters.get(newStartIdx).y;
       
-      
-
-      
-      
-      
-      
-      
-      
-      
-      //curCell.x = int(random(gridN)); curCell.y = int(random(gridN));
-      //if(random(1) < 0.5) {
-      //  curPos.x = curCell.x*gridL+int(random(gridL));
-      //  curPos.y = curCell.y*gridL+int(random(2))*gridL;
-      //}
-      //else{
-      //  curPos.y = curCell.y*gridL+int(random(gridL));
-      //  curPos.x = curCell.x*gridL+int(random(2))*gridL;
-      //}
     }
     else {
       curCell.x = nextCell.x; curCell.y = nextCell.y;
