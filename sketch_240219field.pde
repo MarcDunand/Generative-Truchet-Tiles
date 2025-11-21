@@ -2,8 +2,8 @@ import processing.svg.*;
 import java.util.Collections;
 import java.util.Comparator;
 
-int gridN = 16;
-int  scribbleLen = 10000;
+int gridN = 10;
+int  scribbleLen = 2000;
 boolean debugGrid = false;
 
 ArrayList<PVector> vList = new ArrayList<PVector>();
