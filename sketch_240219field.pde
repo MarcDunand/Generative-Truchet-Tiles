@@ -33,10 +33,11 @@ public static final class EllipseAA {
 float fails = 0.0;
 
 
-int gridN = 20;
+int gridN = 10;
 int iters = 1000;
-int maxAttempts = 3;
-double lineSep = 2;
+int maxAttempts = 5;
+int maxFailedWirings = 1000;  //max number of randomized wirings consecutively found in the hashset before clearing the hashset
+double lineSep = 1;
 boolean debugGrid = false;
 
 PVector centroid = new PVector();
@@ -173,6 +174,21 @@ int generateArc(ArrayList<EllipseAA> arcArr, float gridL, PVector cell, PVector 
 //}
 
 
+// Hash the set of pairs of idxs for a cell to a unique string
+String hashIdxs(ArrayList<int[]> interPairIdxs) {
+  String hashed = "";
+  for(int i = 0; i < interPairIdxs.size(); i++) {
+    int[] pair = interPairIdxs.get(i);
+    hashed += "(";
+    hashed += pair[0];
+    hashed += "-";
+    hashed += pair[1];
+    hashed += ")";
+  }
+  return hashed;
+}
+
+
 // Compute Catalan numbers C[0..maxN] (double is fine for moderate sizes)
 double[] catalanNumbers(int maxN) {
   double[] C = new double[maxN + 1];
@@ -306,7 +322,7 @@ void setup() {
     boolean intersects = true;
     int attempts = 0;
     
-    Set<List<Integer>> invalidWiringSet = new HashSet<>();
+    Set<String> invalidWiringSet = new HashSet<>();
     
     while(intersects && attempts < maxAttempts) {
       nextCell = randomGridStep(curCell);
@@ -404,11 +420,22 @@ void setup() {
         interIdxs.remove(newStartIdx);
         
         boolean alreadyAttempted = true;
-        
-        //while(alreadyAttempted) {
-          ArrayList<int[]> interPairIdxs = connectPts(interIdxs);
-          //invalidWiringSet.add(interPairIdxs);  // whatever Set type you’re using
-        //}
+        int failedAttempts = 0;
+        ArrayList<int[]> interPairIdxs = new ArrayList<int[]>();
+        while(alreadyAttempted) {
+          interPairIdxs = connectPts(interIdxs);
+          String hashedPairs = hashIdxs(interPairIdxs);
+          if(!invalidWiringSet.contains(hashedPairs)) {  //if this is a new wiring
+            invalidWiringSet.add(hashedPairs);
+            alreadyAttempted = false;
+          }
+          else {
+            failedAttempts++;
+            if(failedAttempts > maxFailedWirings) {
+              invalidWiringSet.clear();
+            }
+          }
+        }
 
         arcCell.clear();
         for(int j = 0; j < interPairIdxs.size(); j++) {
