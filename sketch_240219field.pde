@@ -34,9 +34,9 @@ float fails = 0.0;
 
 
 int gridN = 10;
-int iters = 1000;
+int iters = 300;
 int maxAttempts = 5;
-int maxFailedWirings = 1000;  //max number of randomized wirings consecutively found in the hashset before clearing the hashset
+int maxFailedWirings = 300;  //max number of randomized wirings consecutively found in the hashset before clearing the hashset
 double lineSep = 1;
 boolean debugGrid = false;
 
