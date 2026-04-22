@@ -2,7 +2,7 @@ import processing.svg.*;
 import java.util.Collections;
 import java.util.Comparator;
 
-int gridN = 10;
+int gridN = 12;
 int  scribbleLen = 2000;
 boolean debugGrid = false;
 
@@ -62,7 +62,7 @@ ArrayList<PVector[]> connectPts(ArrayList<PVector> arr, ArrayList<PVector[]> lin
 
 void setup() {
   pixelDensity(1);
-  size(800, 800);
+  size(1200, 800);
   
   beginRecord(SVG, "testoutp.svg");
   
